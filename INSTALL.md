@@ -1,268 +1,124 @@
 #neural-style Installation
 
-This guide will walk you through the setup for `neural-style` on Ubuntu.
+This guide will walk you through the installation of `neural-style` on OS X using [MacPorts package manager](https://www.macports.org/). It's a simplified guide designed to avoid having to use some affiliated installation scripts that may mess your environment up a little. In some aspects, this guide will also be a little more in-depth. In others, it will be less in-depth.
 
-## Step 1: Install torch7
+## Step 1: Install XCode command line tools and MacPorts
 
-First we need to install torch, following the installation instructions
-[here](http://torch.ch/docs/getting-started.html#_):
+1. Installation is described [here](https://www.macports.org/install.php).
+2. Download the ports tree with `sudo port selfupdate`.
+3. Open terminal. If you had a previous terminal session open and `which port` doesn't return anything, you should open a new terminal tab or window (that will refresh your PATH environmental variable without doubling its content - that's what the `source ~/.profile` command does by default, unfortunately).
 
-```
-# in a terminal, run the commands
-cd ~/
-curl -s https://raw.githubusercontent.com/torch/ezinstall/master/install-deps | bash
-git clone https://github.com/torch/distro.git ~/torch --recursive
-cd ~/torch; ./install.sh
-```
+## Step 2: Install dependencies for Torch7
 
-The first script installs all dependencies for torch and may take a while.
-The second script actually installs lua and torch.
-The second script also edits your `.bashrc` file so that torch is added to your `PATH` variable;
-we need to source it to refresh our environment variables:
+This is MacPorts-specific extract of <https://raw.githubusercontent.com/torch/ezinstall/master/install-deps>:
 
-```
-source ~/.bashrc
-```
+Commands to enter into terminal:
+```bash
+# Note: git should already be present in your system but it doesn't hurt to have the latest version...
+# Note: I haven't quite figured out why 'xorg-server' should be needed but whatever...
+sudo port install OpenBLAS cmake git readline wget imagemagick zmq graphicsmagick xorg-server protobuf-cpp
+sudo port install gnuplot +pdflib -luaterm
 
-To check that your torch installation is working, run the command `th` to enter the interactive shell.
-To quit just type `exit`.
+# Note: can easily adjust to other versions of python (e.g. 'python35' and 'py35-*' packages).
+sudo port install python_select python27 py27-ipython
 
+# Troubleshoot for the previous command:
+# 1) If 'Error: org.macports.install for port <XXX> returned: no destroot found at: ...', execute 'sudo port clean <XXX>' and try again.
+# 2) If 'Error: org.macports.activate for port <XXX> returned: Image error: ...', execute 'sudo port -f activate <XXX>' and try again.
 
-## Step 2: Install loadcaffe
-
-`loadcaffe` depends on [Google's Protocol Buffer library](https://developers.google.com/protocol-buffers/?hl=en)
-so we'll need to install that first:
-
-```
-sudo apt-get install libprotobuf-dev protobuf-compiler
+# and finally:
+sudo port select --set python python27
+sudo port select --set ipython py27-ipython
 ```
 
-Now we can instal `loadcaffe`:
+## Step 3: Install Torch7
 
-```
-luarocks install loadcaffe
-```
-
-## Step 3: Install neural-style
-
-First we clone `neural-style` from GitHub:
-
-```
-cd ~/
-git clone https://github.com/jcjohnson/neural-style.git
-cd neural-style
+First clone:
+```bash
+git clone https://github.com/torch/distro.git --recursive
 ```
 
-Next we need to download the pretrained neural network models:
+Then apply a hotfix for `./torch/install.sh` script, e.g. replace `cmake .. -DCMAKE_INSTALL_PREFIX="${PREFIX}"` with `cmake .. -DCMAKE_INSTALL_PREFIX="$PREFIX"` (remove curly braces). On my Mac, Torch7 wouldn't compile otherwise, possibly because of using bash.
 
-```
-sh models/download_models.sh
-```
-
-You should now be able to run `neural-style` in CPU mode like this:
-
-```
-th neural_style.lua -gpu -1 -print_iter 1
+Compile and install Torch7:
+```bash
+# Note: we haven't installed Qt 4.x so 'qtlua' and 'qttorch' won't be installed but no biggie... everything works for me. Feel free to adjust PREFIX for your own needs.
+export PREFIX=/usr/local
+# Note: using 'sudo' is necessary only if PREFIX points into a protected folder.
+[sudo] -E bash ./install.sh -s
 ```
 
-If everything is working properly you should see output like this:
-
-```
-[libprotobuf WARNING google/protobuf/io/coded_stream.cc:505] Reading dangerously large protocol message.  If the message turns out to be larger than 1073741824 bytes, parsing will be halted for security reasons.  To increase the limit (or to disable these warnings), see CodedInputStream::SetTotalBytesLimit() in google/protobuf/io/coded_stream.h.
-[libprotobuf WARNING google/protobuf/io/coded_stream.cc:78] The total number of bytes read was 574671192
-Successfully loaded models/VGG_ILSVRC_19_layers.caffemodel
-conv1_1: 64 3 3 3
-conv1_2: 64 64 3 3
-conv2_1: 128 64 3 3
-conv2_2: 128 128 3 3
-conv3_1: 256 128 3 3
-conv3_2: 256 256 3 3
-conv3_3: 256 256 3 3
-conv3_4: 256 256 3 3
-conv4_1: 512 256 3 3
-conv4_2: 512 512 3 3
-conv4_3: 512 512 3 3
-conv4_4: 512 512 3 3
-conv5_1: 512 512 3 3
-conv5_2: 512 512 3 3
-conv5_3: 512 512 3 3
-conv5_4: 512 512 3 3
-fc6: 1 1 25088 4096
-fc7: 1 1 4096 4096
-fc8: 1 1 4096 1000
-WARNING: Skipping content loss	
-Iteration 1 / 1000	
-  Content 1 loss: 2091178.593750	
-  Style 1 loss: 30021.292114	
-  Style 2 loss: 700349.560547	
-  Style 3 loss: 153033.203125	
-  Style 4 loss: 12404635.156250	
-  Style 5 loss: 656.860304	
-  Total loss: 15379874.666090	
-Iteration 2 / 1000	
-  Content 1 loss: 2091177.343750	
-  Style 1 loss: 30021.292114	
-  Style 2 loss: 700349.560547	
-  Style 3 loss: 153033.203125	
-  Style 4 loss: 12404633.593750	
-  Style 5 loss: 656.860304	
-  Total loss: 15379871.853590	
+We used the `s` option so that we could manually fix our environment (the script rather clutters it). Again, adjust this with your own PREFIX, if you changed it. Add the following to your `~/.profile` (alter your bash profile):
+```bash
+$(/usr/local/bin/luarocks path)
+export LUA_CPATH='/usr/local/lib/?.dylib;'\$LUA_CPATH
 ```
 
-## (Optional) Step 4: Install CUDA
-
-If you have a [CUDA-capable GPU from NVIDIA](https://developer.nvidia.com/cuda-gpus) then you can
-speed up `neural-style` with CUDA.
-
-First download and unpack the local CUDA installer from NVIDIA; note that there are different
-installers for each recent version of Ubuntu:
-
-```
-# For Ubuntu 14.10
-wget http://developer.download.nvidia.com/compute/cuda/7_0/Prod/local_installers/rpmdeb/cuda-repo-ubuntu1410-7-0-local_7.0-28_amd64.deb
-sudo dpkg -i cuda-repo-ubuntu1410-7-0-local_7.0-28_amd64.deb
-```
-
-```
-# For Ubuntu 14.04
-wget http://developer.download.nvidia.com/compute/cuda/7_0/Prod/local_installers/rpmdeb/cuda-repo-ubuntu1404-7-0-local_7.0-28_amd64.deb
-sudo dpkg -i cuda-repo-ubuntu1404-7-0-local_7.0-28_amd64.deb
-```
-
-```
-# For Ubuntu 12.04
-http://developer.download.nvidia.com/compute/cuda/7_0/Prod/local_installers/rpmdeb/cuda-repo-ubuntu1204-7-0-local_7.0-28_amd64.deb
-sudo dpkg -i cuda-repo-ubuntu1204-7-0-local_7.0-28_amd64.deb
-```
-
-Now update the repository cache and install CUDA. Note that this will also install a graphics driver from NVIDIA.
-
-```
-sudo apt-get update
-sudo apt-get install cuda
-```
-
-At this point you may need to reboot your machine to load the new graphics driver.
-After rebooting, you should be able to see the status of your graphics card(s) by running
-the command `nvidia-smi`; it should give output that looks something like this:
-
-```
-Sun Sep  6 14:02:59 2015       
-+------------------------------------------------------+                       
-| NVIDIA-SMI 346.96     Driver Version: 346.96         |                       
-|-------------------------------+----------------------+----------------------+
-| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
-| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
-|===============================+======================+======================|
-|   0  GeForce GTX TIT...  Off  | 0000:01:00.0      On |                  N/A |
-| 22%   49C    P8    18W / 250W |   1091MiB / 12287MiB |      3%      Default |
-+-------------------------------+----------------------+----------------------+
-|   1  GeForce GTX TIT...  Off  | 0000:04:00.0     Off |                  N/A |
-| 29%   44C    P8    27W / 189W |     15MiB /  6143MiB |      0%      Default |
-+-------------------------------+----------------------+----------------------+
-|   2  GeForce GTX TIT...  Off  | 0000:05:00.0     Off |                  N/A |
-| 30%   45C    P8    33W / 189W |     15MiB /  6143MiB |      0%      Default |
-+-------------------------------+----------------------+----------------------+
-                                                                               
-+-----------------------------------------------------------------------------+
-| Processes:                                                       GPU Memory |
-|  GPU       PID  Type  Process name                               Usage      |
-|=============================================================================|
-|    0      1277    G   /usr/bin/X                                     631MiB |
-|    0      2290    G   compiz                                         256MiB |
-|    0      2489    G   ...s-passed-by-fd --v8-snapshot-passed-by-fd   174MiB |
-+-----------------------------------------------------------------------------+
-```
-
-## (Optional) Step 5: Install CUDA backend for torch
-
-This is easy:
-
-```
-luarocks install cutorch
-luarocks install cunn
-```
-
-You can check that the installation worked by running the following:
-
-```
-th -e "require 'cutorch'; require 'cunn'; print(cutorch)"
-```
-
-This should produce output like the this:
-
-```
-{
-  getStream : function: 0x40d40ce8
-  getDeviceCount : function: 0x40d413d8
-  setHeapTracking : function: 0x40d41a78
-  setRNGState : function: 0x40d41a00
-  getBlasHandle : function: 0x40d40ae0
-  reserveBlasHandles : function: 0x40d40980
-  setDefaultStream : function: 0x40d40f08
-  getMemoryUsage : function: 0x40d41480
-  getNumStreams : function: 0x40d40c48
-  manualSeed : function: 0x40d41960
-  synchronize : function: 0x40d40ee0
-  reserveStreams : function: 0x40d40bf8
-  getDevice : function: 0x40d415b8
-  seed : function: 0x40d414d0
-  deviceReset : function: 0x40d41608
-  streamWaitFor : function: 0x40d40a00
-  withDevice : function: 0x40d41630
-  initialSeed : function: 0x40d41938
-  CudaHostAllocator : torch.Allocator
-  test : function: 0x40ce5368
-  getState : function: 0x40d41a50
-  streamBarrier : function: 0x40d40b58
-  setStream : function: 0x40d40c98
-  streamBarrierMultiDevice : function: 0x40d41538
-  streamWaitForMultiDevice : function: 0x40d40b08
-  createCudaHostTensor : function: 0x40d41670
-  setBlasHandle : function: 0x40d40a90
-  streamSynchronize : function: 0x40d41590
-  seedAll : function: 0x40d414f8
-  setDevice : function: 0x40d414a8
-  getNumBlasHandles : function: 0x40d409d8
-  getDeviceProperties : function: 0x40d41430
-  getRNGState : function: 0x40d419d8
-  manualSeedAll : function: 0x40d419b0
-  _state : userdata: 0x022fe750
-}
-```
-
-You should now be able to run `neural-style` in GPU mode:
-
-```
-th neural_style.lua -gpu 0 -print_iter 1
-```
-
-### (Optional) Step 6: Install cuDNN
-
-cuDNN is a library from NVIDIA that efficiently implements many of the operations (like convolutions and pooling)
-that are commonly used in deep learning.
-
-After registering as a developer with NVIDIA, you can [download cuDNN here](https://developer.nvidia.com/cudnn).
-Make sure to download Version 4.
-
-After dowloading, you can unpack and install cuDNN like this:
+## Step 4: Install neural-style
 
 ```bash
-tar -xzvf cudnn-7.0-linux-x64-v4.0-prod.tgz
-sudo cp cuda/lib64/libcudnn* /usr/local/cuda-7.0/lib64/
-sudo cp cuda/include/cudnn.h /usr/local/cuda-7.0/include/
+git clone https://github.com/jcjohnson/neural-style --recursive
+sh ./neural-style/models/download_models.sh
+# Note: using 'sudo' is necessary only if PREFIX from step 3 points into a protected folder.
+[sudo] luarocks install loadcaffe
 ```
 
-Next we need to install the torch bindings for cuDNN:
+Using `sudo` is necessary only if you install into 
 
-```
-luarocks install cudnn
+## (Optional) Step 5: Add GPU support to neural-style
+
+If you have a [CUDA-capable GPU from NVIDIA](https://developer.nvidia.com/cuda-gpus) then you can
+speed up `neural-style` using the CUDA technology.
+
+Download and install the [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit), version 8.0 works for me. I hated the default installation location of `/Developer/NVidia/...` (ends with `CUDA-x.y`), so I moved it to `<new-installation-path>` as follows:
+```bash
+# Note: make sure not to remove other CUDA installations with the second command...
+sudo mv "<default-installation-path>" "<new-installation-path>"
+sudo rm -rf /Developer
 ```
 
-You should now be able to run `neural-style` with cuDNN like this:
-
+Regardless of whether you move the installation or not, you need to adjust your environment again:
+```bash
+export PATH="$PATH:<installation-path>/bin"
+export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:<installation-path>/lib"
 ```
-th neural_style.lua -gpu 0 -backend cudnn
+
+Applications should now automatically detect your CUDA installation from the CUDA compiler - if `which nvcc` doesn't return `<installation-path>/bin` even after opening a new terminal tab or window, you probably did something wrong.
+
+The only remaining thing to do:
+```bash
+# Note: using 'sudo' is necessary only if PREFIX from step 3 points into a protected folder.
+[sudo] luarocks install cutorch
+[sudo] luarocks install cunn
 ```
 
-Note that the cuDNN backend can only be used for GPU mode.
+## (Optional) Step 6: Add cuDNN backend support to neural-style
+
+Neural-style uses the `cunn` backend by default but `cuDNN` is a library from NVIDIA that efficiently implements many of the operations (like convolutions and pooling) commonly used in deep learning. Generally, it uses less memory and performs better.
+
+After registering as a developer with NVIDIA, you can [download cuDNN here](https://developer.nvidia.com/cudnn). For me, version 5.0 worked. Then:
+```bash
+tar -xzvf cudnn-7.0-osx-x64-v4.0-prod.tgz
+# Note: using 'sudo' is necessary only if we moved CUDA installation into a protected folder.
+[sudo] mv ./cuda/include/ "<installation-path>/include/"
+[sudo] mv ./cuda/lib/ "<installation-path>/lib/"
+rm -rf ./cuda
+```
+
+Next we need to install Torch bindings for cuDNN:
+```bash
+# Note: using 'sudo' is necessary only if PREFIX from step 3 points into a protected folder.
+[sudo] luarocks install cudnn
+```
+
+## Final notes
+
+Overall, it's a little longer process but it has its benefits:
+
+* No messing up your environment. Personally, I hate my shell profile being split across several files (e.g. `~/.profile` and `~/.bashrc`).
+* Upgrading dependencies installed with MacPorts is extremely easy.
+* Targetting specific versions for dependencies installed with MacPorts is extremely easy.
+* Dependencies installed with MacPorts will no longer be installed from their respective `master` branch on GitHub and that reduces the risk of errors coming from further development.
+
+Downsides:
+* The process comes with a little maintenance. Installing other MacPorts packages may activate other installations of the same dependencies (e.g. `pdflib`) which might result in some issues. Should that ever happen, however, you only need to repeat step 2.
